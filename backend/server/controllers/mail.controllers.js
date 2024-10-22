@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
+const logger = require('../logger'); // Import the logger
 
-//Transporter to send mails via nodemailer
+// Transporter to send mails via nodemailer
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -10,26 +11,37 @@ const transporter = nodemailer.createTransport({
 });
 
 module.exports.sendSampleMail = async (req, res, next) => {
-    try{
+    try {
+        const recipientEmail = req.params.email;
+
+        // Ensure the email param is present
+        if (!recipientEmail) {
+            logger.warn("Email parameter is missing");
+            return res.status(400).json({ msg: "Email is required" });
+        }
+
         transporter.sendMail({
             from: 'noreply@yourdomain.com', // Sample mail
-            to: req.params.email, // Pass in as params
+            to: recipientEmail, // Pass in as params
             cc: '', // Some CC if needed
             subject: 'Greetings from nodemailer',
             html: `
-                <h1> Hi there this mail was sent by nodemailer </h1>
+                <h1> Hi there, this mail was sent by nodemailer </h1>
             `
         }, (err, info) => {
             if (err) {
-                console.log(err);
+                logger.error(`Error sending email to ${recipientEmail}: ${err.message}`);
+                return res.status(500).json({ msg: 'Error sending mail' });
             } else {
-                console.log('Email sent: ' + info.response);
+                logger.info(`Email successfully sent to ${recipientEmail}`);
                 res.json({
-                    msg: 'mail sent'
-                })
+                    msg: 'Mail sent successfully',
+                    info: info.response,
+                });
             }
-        })
-    }catch(error){  
-        next(error)
+        });
+    } catch (error) {
+        logger.error(`Unexpected error while sending email: ${error.message}`);
+        next(error);
     }
-}
+};

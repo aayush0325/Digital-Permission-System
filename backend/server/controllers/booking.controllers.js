@@ -7,6 +7,7 @@ const {
   getPendingBookingsService,
   updateBookingStatus,
 } = require("../services/booking.service");
+const logger = require("../logger"); // Import the logger
 
 // Create Booking
 module.exports.createBooking = async (req, res, next) => {
@@ -35,7 +36,7 @@ module.exports.createBooking = async (req, res, next) => {
       !phoneNumber ||
       !email
     ) {
-      console.log("Missing required booking information");
+      logger.warn("Missing required booking information");
       return res.status(400).send("All fields are required");
     }
 
@@ -52,8 +53,10 @@ module.exports.createBooking = async (req, res, next) => {
     };
 
     const newBooking = await createBooking(bookingData);
+    logger.info(`New booking created for venue: ${venueName}`);
     return res.status(201).json(newBooking);
   } catch (error) {
+    logger.error(`Error creating booking: ${error.message}`);
     next(error);
   }
 };
@@ -64,17 +67,20 @@ module.exports.getBookingById = async (req, res, next) => {
     const { bookingId } = req.params;
 
     if (!bookingId) {
-      console.log("Booking ID not provided");
+      logger.warn("Booking ID not provided");
       return res.status(400).send("Booking ID is required");
     }
 
     const booking = await getBookingById(bookingId);
     if (!booking) {
+      logger.warn(`Booking not found for ID: ${bookingId}`);
       return res.status(404).send("Booking not found");
     }
 
+    logger.info(`Booking retrieved for ID: ${bookingId}`);
     return res.status(200).json(booking);
   } catch (error) {
+    logger.error(`Error retrieving booking by ID: ${error.message}`);
     next(error);
   }
 };
@@ -83,8 +89,10 @@ module.exports.getBookingById = async (req, res, next) => {
 module.exports.getAllBookings = async (req, res, next) => {
   try {
     const bookings = await getAllBookings();
+    logger.info('All bookings retrieved');
     return res.status(200).json(bookings);
   } catch (error) {
+    logger.error(`Error retrieving all bookings: ${error.message}`);
     next(error);
   }
 };
@@ -106,7 +114,7 @@ module.exports.updateBooking = async (req, res, next) => {
     } = req.body;
 
     if (!bookingId) {
-      console.log("Booking ID not provided");
+      logger.warn("Booking ID not provided");
       return res.status(400).send("Booking ID is required");
     }
 
@@ -123,8 +131,10 @@ module.exports.updateBooking = async (req, res, next) => {
     };
 
     const updatedBooking = await updateBooking(bookingId, updatedBookingData);
+    logger.info(`Booking updated for ID: ${bookingId}`);
     return res.status(200).json(updatedBooking);
   } catch (error) {
+    logger.error(`Error updating booking for ID: ${bookingId}, ${error.message}`);
     next(error);
   }
 };
@@ -135,42 +145,53 @@ module.exports.deleteBooking = async (req, res, next) => {
     const { bookingId } = req.body;
 
     if (!bookingId) {
-      console.log("Booking ID not provided");
+      logger.warn("Booking ID not provided for deletion");
       return res.status(400).send("Booking ID is required");
     }
 
     const deletedBooking = await deleteBooking(bookingId);
+    logger.info(`Booking deleted for ID: ${bookingId}`);
     return res.status(200).json(deletedBooking);
   } catch (error) {
+    logger.error(`Error deleting booking for ID: ${bookingId}, ${error.message}`);
     next(error);
   }
 };
 
+// Get Pending Bookings
 module.exports.getPendingBookings = async (req, res, next) => {
   try {
     const pendingBookings = await getPendingBookingsService();
+    logger.info('Retrieved pending bookings');
     return res.status(200).json(pendingBookings);
   } catch (error) {
+    logger.error(`Error retrieving pending bookings: ${error.message}`);
     next(error);
   }
 };
 
+// Accept Booking
 module.exports.acceptBooking = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
     const updatedBooking = await updateBookingStatus(bookingId, "accepted");
+    logger.info(`Booking accepted for ID: ${bookingId}`);
     return res.status(200).json(updatedBooking);
   } catch (error) {
+    logger.error(`Error accepting booking for ID: ${bookingId}, ${error.message}`);
     next(error);
   }
 };
 
+// Reject Booking
 module.exports.rejectBooking = async (req, res, next) => {
   try {
     const { bookingId } = req.params;
     const updatedBooking = await updateBookingStatus(bookingId, "rejected");
+    logger.info(`Booking rejected for ID: ${bookingId}`);
     return res.status(200).json(updatedBooking);
   } catch (error) {
+    logger.error(`Error rejecting booking for ID: ${bookingId}, ${error.message}`);
     next(error);
   }
 };

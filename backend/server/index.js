@@ -7,6 +7,7 @@ const passport = require("passport");
 const OAuth2Strategy = require("passport-google-oauth2").Strategy;
 const userdb = require("./model/userSchema");
 const routes = require("./routes/index");
+const logger = require('./logger');
 
 // Loading the env variables
 dotenv.config();
@@ -36,9 +37,10 @@ app.use(
   })
 );
 
-//Mounting of Router
+// Mounting of Router
 app.use("/api", routes);
 
+// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -62,9 +64,13 @@ passport.use(
             image: profile.picture,
           });
           await user.save();
+          logger.info(`New user created: ${user.email}`);
+        } else {
+          logger.info(`User logged in: ${user.email}`);
         }
         return done(null, user);
       } catch (error) {
+        logger.error(`Error during authentication: ${error.message}`);
         return done(error, null);
       }
     }
@@ -80,12 +86,14 @@ passport.deserializeUser(async (id, done) => {
     const user = await userdb.findById(id);
     done(null, user);
   } catch (error) {
+    logger.error(`Error deserializing user: ${error.message}`);
     done(error, null);
   }
 });
 
 // Basic route
 app.get("/", (req, res) => {
+  logger.info('Root route accessed');
   res.send("Hello from Express backend");
 });
 
@@ -103,29 +111,39 @@ app.get(
   })
 );
 
+// Login Success Route
 app.get("/login/success", async (req, res) => {
   if (req.user) {
+    logger.info(`Login successful for user: ${req.user.email}`);
     res.status(200).json({ message: "user Login", user: req.user });
   } else {
+    logger.warn('Unauthorized access to login success route');
     res.status(400).json({ message: "Not Authorized" });
   }
 });
 
+// Logout Route
 app.get("/logout", (req, res, next) => {
   req.logout(function (err) {
     if (err) {
+      logger.error(`Logout error: ${err.message}`);
       return next(err);
     }
+    logger.info(`User logged out`);
     res.redirect(`${frontendUrl}`);
   });
 });
 
 // MongoDB connection (add your MongoDB URL)
 mongoose.connect(process.env.MONGOURL)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.log(err));
+  .then(() => {
+    logger.info('Connected to MongoDB');
+  })
+  .catch((err) => {
+    logger.error(`MongoDB connection error: ${err.message}`);
+  });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
 });
