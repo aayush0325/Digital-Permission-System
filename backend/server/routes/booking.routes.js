@@ -10,6 +10,7 @@ const {
   acceptBooking,
   rejectBooking,
 } = require("../controllers/booking.controllers");
+const adminCheckMiddleware = require("../middleware/admin.middleware");
 
 // Route to create a new booking
 router.post("/", createBooking);
@@ -26,8 +27,14 @@ router.post("/:bookingId", updateBooking);
 // Route to delete a booking by its ID
 router.post("/delete", deleteBooking);
 
-router.get("/admin/pending", getPendingBookings);
-router.post("/admin/accept/:bookingId", acceptBooking);
-router.post("/admin/reject/:bookingId", rejectBooking); 
+// admin routes
+router.get("/admin/pending", adminCheckMiddleware, getPendingBookings);
+router.post("/admin/accept/:bookingId", adminCheckMiddleware, acceptBooking);
+router.post("/admin/reject/:bookingId", adminCheckMiddleware, rejectBooking);
+
+// postholder specific routes
+router.get("/:bookingId/status", checkBookingStatus);
+router.post("/:bookingId/feedback", submitFeedback);
+router.get("/venues/:venueId/availability", checkVenueAvailability);
 
 module.exports = router;
