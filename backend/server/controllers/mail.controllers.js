@@ -1,8 +1,9 @@
 const nodemailer = require('nodemailer');
 const logger = require('../logger'); // Import the logger
+const { sendConfirmationEmail } = require('../services/mail.services')
 
 // Transporter to send mails via nodemailer
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL, // Set in .env 
@@ -45,3 +46,27 @@ module.exports.sendSampleMail = async (req, res, next) => {
         next(error);
     }
 };
+
+module.exports.sendConfirmationEmailToAdmin = async (req, res, next) => {
+    try{
+        const { venueName, venueLocation, date, timings, reason, organisation, poc, senderMail, recipientEmail, subject, bookingId } = req.body;
+
+        if (
+            !venueName || !venueLocation || !date || !timings || !reason || !organisation || !poc || !recipientEmail || !bookingId
+        ){
+            logger.warn("One or more parameters is missing while trying to send confirmation mail to admin");
+            return res.status(400).json({ msg: "Invalid request body" });
+        }
+
+        await sendConfirmationEmail( venueName, venueLocation, date, timings, reason, organisation, poc, senderMail, recipientEmail, subject, yesLink, noLink );
+
+        logger.info(`Confirmation mail from ${senderMail} sent to ${recipientEmail} for ${organisation}`);
+
+        return res.json({
+            msg:"Email sent"
+        })
+    }catch(error){
+        logger.error(`Unexpected error while sending email: ${error.message}`);
+        next(error);
+    }
+}

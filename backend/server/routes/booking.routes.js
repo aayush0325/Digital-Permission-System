@@ -27,14 +27,17 @@ router.post("/:bookingId", updateBooking);
 // Route to delete a booking by its ID
 router.post("/delete", deleteBooking);
 
-// admin routes
+//admin routes
 router.get("/admin/pending", adminCheckMiddleware, getPendingBookings);
-router.post("/admin/accept/:bookingId", adminCheckMiddleware, acceptBooking);
-router.post("/admin/reject/:bookingId", adminCheckMiddleware, rejectBooking);
+      // Changed these to get requests with query params so that these can be called through the mail
+router.get("/admin/accept", adminCheckMiddleware, acceptBooking);
+router.get("/admin/reject", adminCheckMiddleware, rejectBooking); 
+
 
 // postholder specific routes
 router.get("/:bookingId/status", checkBookingStatus);
 router.post("/:bookingId/feedback", submitFeedback);
 router.get("/venues/:venueId/availability", checkVenueAvailability);
+
 
 module.exports = router;
