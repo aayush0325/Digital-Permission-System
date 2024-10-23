@@ -52,7 +52,7 @@ module.exports.sendConfirmationEmailToAdmin = async (req, res, next) => {
         const { venueName, venueLocation, date, timings, reason, organisation, poc, senderMail, recipientEmail, subject, bookingId } = req.body;
 
         if (
-            !venueName || !venueLocation || !date || !timings || !reason || !organisation || !poc || !senderMail || !recipientEmail || !subject || !bookingId
+            !venueName || !venueLocation || !date || !timings || !reason || !organisation || !poc || !recipientEmail || !bookingId
         ){
             logger.warn("One or more parameters is missing while trying to send confirmation mail to admin");
             return res.status(400).json({ msg: "Invalid request body" });

@@ -28,7 +28,8 @@ router.post("/delete", deleteBooking);
 
 router.get("/admin/pending", getPendingBookings);
 
-router.get("/admin/accept/:bookingId", acceptBooking);
-router.get("/admin/reject/:bookingId", rejectBooking); 
+// Changed these to get requests with query params so that these can be called through the mail
+router.get("/admin/accept", acceptBooking);
+router.get("/admin/reject", rejectBooking); 
 
 module.exports = router;
