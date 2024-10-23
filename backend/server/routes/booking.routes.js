@@ -27,7 +27,8 @@ router.post("/:bookingId", updateBooking);
 router.post("/delete", deleteBooking);
 
 router.get("/admin/pending", getPendingBookings);
-router.post("/admin/accept/:bookingId", acceptBooking);
-router.post("/admin/reject/:bookingId", rejectBooking); 
+
+router.get("/admin/accept/:bookingId", acceptBooking);
+router.get("/admin/reject/:bookingId", rejectBooking); 
 
 module.exports = router;
