@@ -1,5 +1,5 @@
 const Booking = require("../model/bookingSchema"); // import Booking model
-const logger = require('../logger'); // Import Winston logger
+const logger = require("../logger"); // Import Winston logger
 
 // Create a new booking
 module.exports.createBookingService = async (bookingData) => {
@@ -40,7 +40,9 @@ module.exports.getBookingById = async (bookingId) => {
     }
     return booking;
   } catch (error) {
-    logger.error(`Error retrieving booking with ID: ${bookingId} - ${error.message}`);
+    logger.error(
+      `Error retrieving booking with ID: ${bookingId} - ${error.message}`
+    );
     throw new Error("Error retrieving booking: " + error.message);
   }
 };
@@ -72,7 +74,9 @@ module.exports.updateBooking = async (bookingId, updatedData) => {
     }
     return updatedBooking;
   } catch (error) {
-    logger.error(`Error updating booking with ID: ${bookingId} - ${error.message}`);
+    logger.error(
+      `Error updating booking with ID: ${bookingId} - ${error.message}`
+    );
     throw new Error("Error updating booking: " + error.message);
   }
 };
@@ -88,7 +92,9 @@ module.exports.deleteBooking = async (bookingId) => {
     }
     return deletedBooking;
   } catch (error) {
-    logger.error(`Error deleting booking with ID: ${bookingId} - ${error.message}`);
+    logger.error(
+      `Error deleting booking with ID: ${bookingId} - ${error.message}`
+    );
     throw new Error("Error deleting booking: " + error.message);
   }
 };
@@ -97,7 +103,9 @@ module.exports.deleteBooking = async (bookingId) => {
 module.exports.getPendingBookingsService = async () => {
   try {
     const pendingBookings = await Booking.find({ status: "pending" });
-    logger.info(`Retrieved pending bookings - count: ${pendingBookings.length}`);
+    logger.info(
+      `Retrieved pending bookings - count: ${pendingBookings.length}`
+    );
     return pendingBookings;
   } catch (error) {
     logger.error(`Error retrieving pending bookings: ${error.message}`);
@@ -120,7 +128,101 @@ module.exports.updateBookingStatus = async (bookingId, status) => {
     }
     return updatedBooking;
   } catch (error) {
-    logger.error(`Error updating booking status for ID: ${bookingId} - ${error.message}`);
+    logger.error(
+      `Error updating booking status for ID: ${bookingId} - ${error.message}`
+    );
     throw new Error("Error updating booking status: " + error.message);
+  }
+};
+
+// Check venue availability
+module.exports.checkVenueAvailabilityService = async (
+  venueId,
+  date,
+  startTime,
+  duration
+) => {
+  try {
+    const requestedStart = moment(startTime, "HH:mm");
+    const requestedEnd = moment(startTime, "HH:mm").add(duration, "minutes");
+
+    const bookings = await Booking.find({ venueId, date });
+
+    // Filter bookings based on their status
+    const acceptedBookings = bookings.filter(
+      (booking) => booking.status === "accepted"
+    );
+    const pendingBookings = bookings.filter(
+      (booking) => booking.status === "pending"
+    );
+
+    // Check for overlapping bookings (both accepted and pending)
+    const isOverlap = [...acceptedBookings, ...pendingBookings].some(
+      (booking) => {
+        const bookingStart = moment(booking.timings.startTime, "HH:mm");
+        const bookingEnd = moment(booking.timings.startTime, "HH:mm").add(
+          booking.timings.duration,
+          "minutes"
+        );
+
+        return (
+          requestedStart.isBefore(bookingEnd) &&
+          requestedEnd.isAfter(bookingStart)
+        );
+      }
+    );
+
+    if (isOverlap) {
+      const isAcceptedBooking = acceptedBookings.some((booking) => {
+        const bookingStart = moment(booking.timings.startTime, "HH:mm");
+        const bookingEnd = moment(booking.timings.startTime, "HH:mm").add(
+          booking.timings.duration,
+          "minutes"
+        );
+        return (
+          requestedStart.isBefore(bookingEnd) &&
+          requestedEnd.isAfter(bookingStart)
+        );
+      });
+
+      if (isAcceptedBooking) {
+        logger.info(
+          `Venue ${venueId} is unavailable at ${startTime} on ${date}`
+        );
+        return { available: false, message: "Place already booked" };
+      } else {
+        logger.info(
+          `Venue ${venueId} has pending bookings at ${startTime} on ${date}`
+        );
+        return { available: true, pendingBookings };
+      }
+    }
+
+    // Check for any bookings within one hour before or after the requested time
+    const oneHourBefore = requestedStart.subtract(1, "hour");
+    const oneHourAfter = requestedEnd.add(1, "hour");
+
+    const closeBookings = bookings.filter((booking) => {
+      const bookingStart = moment(booking.timings.startTime, "HH:mm");
+      const bookingEnd = moment(booking.timings.startTime, "HH:mm").add(
+        booking.timings.duration,
+        "minutes"
+      );
+
+      return (
+        bookingStart.isBetween(oneHourBefore, oneHourAfter, null, "[]") ||
+        bookingEnd.isBetween(oneHourBefore, oneHourAfter, null, "[]") ||
+        requestedStart.isBetween(bookingStart, bookingEnd, null, "[]") ||
+        requestedEnd.isBetween(bookingStart, bookingEnd, null, "[]")
+      );
+    });
+
+    logger.info(`Venue ${venueId} is available at ${startTime} on ${date}`);
+    return { available: true, closeBookings };
+  } catch (error) {
+    logger.error(
+      `Error checking availability for venue ${venueId}: ${error.message}`
+    );
+    throw new Error("Error checking availability: " + error.message);
   }
 };

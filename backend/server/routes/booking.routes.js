@@ -9,6 +9,9 @@ const {
   getPendingBookings,
   acceptBooking,
   rejectBooking,
+  checkBookingStatus,
+  submitFeedback,
+  checkVenueAvailability,
 } = require("../controllers/booking.controllers");
 const adminCheckMiddleware = require("../middleware/admin.middleware");
 
@@ -29,15 +32,13 @@ router.post("/delete", deleteBooking);
 
 //admin routes
 router.get("/admin/pending", adminCheckMiddleware, getPendingBookings);
-      // Changed these to get requests with query params so that these can be called through the mail
+// Changed these to get requests with query params so that these can be called through the mail
 router.get("/admin/accept", adminCheckMiddleware, acceptBooking);
-router.get("/admin/reject", adminCheckMiddleware, rejectBooking); 
-
+router.get("/admin/reject", adminCheckMiddleware, rejectBooking);
 
 // postholder specific routes
 router.get("/:bookingId/status", checkBookingStatus);
 router.post("/:bookingId/feedback", submitFeedback);
 router.get("/venues/:venueId/availability", checkVenueAvailability);
-
 
 module.exports = router;
