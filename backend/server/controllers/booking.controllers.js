@@ -6,11 +6,16 @@ const {
   deleteBooking,
   getPendingBookingsService,
   updateBookingStatus,
+  checkVenueAvailabilityService,
 } = require("../services/booking.service");
 
 const logger = require("../logger"); // Import the logger
-const { sendAcceptEmail, SendRejectEmail } = require("../services/mail.services")
+const {
+  sendAcceptEmail,
+  SendRejectEmail,
+} = require("../services/mail.services");
 const moment = require("moment");
+
 // Create Booking
 module.exports.createBooking = async (req, res, next) => {
   try {
@@ -187,20 +192,35 @@ module.exports.getPendingBookings = async (req, res, next) => {
 // Accept Booking
 module.exports.acceptBooking = async (req, res, next) => {
   try {
-    const bookingId = req.query.bookingId
-    const venueName = req.query.venueName
-    const venueLocation = req.query.venueLocation
-    const date = req.query.date
-    const timings = req.query.timings
-    const recipientEmail = req.query.recipientEmail
+    const bookingId = req.query.bookingId;
+    const venueName = req.query.venueName;
+    const venueLocation = req.query.venueLocation;
+    const date = req.query.date;
+    const timings = req.query.timings;
+    const recipientEmail = req.query.recipientEmail;
 
-    if( !bookingId || !venueName || !venueLocation || !date || !timings || !recipientEmail ){
-      logger.warn("One or more parameters is missing while trying to send confirmation mail to admin");
+    if (
+      !bookingId ||
+      !venueName ||
+      !venueLocation ||
+      !date ||
+      !timings ||
+      !recipientEmail
+    ) {
+      logger.warn(
+        "One or more parameters is missing while trying to send confirmation mail to admin"
+      );
       return res.status(400).json({ msg: "Invalid request body" });
     }
 
-    await sendAcceptEmail(venueName, venueLocation, date, timings, recipientEmail)
-    logger.info(`Booking accept Email sent to ${recipientEmail}`)
+    await sendAcceptEmail(
+      venueName,
+      venueLocation,
+      date,
+      timings,
+      recipientEmail
+    );
+    logger.info(`Booking accept Email sent to ${recipientEmail}`);
 
     const updatedBooking = await updateBookingStatus(bookingId, "accepted");
     logger.info(`Booking accepted for ID: ${bookingId}`);
@@ -216,20 +236,35 @@ module.exports.acceptBooking = async (req, res, next) => {
 // Reject Booking
 module.exports.rejectBooking = async (req, res, next) => {
   try {
-    const bookingId = req.query.bookingId
-    const venueName = req.query.venueName
-    const venueLocation = req.query.venueLocation
-    const date = req.query.date
-    const timings = req.query.timings
-    const recipientEmail = req.query.recipientEmail
+    const bookingId = req.query.bookingId;
+    const venueName = req.query.venueName;
+    const venueLocation = req.query.venueLocation;
+    const date = req.query.date;
+    const timings = req.query.timings;
+    const recipientEmail = req.query.recipientEmail;
 
-    if( !bookingId || !venueName || !venueLocation || !date || !timings || !recipientEmail ){
-      logger.warn("One or more parameters is missing while trying to send confirmation mail to admin");
+    if (
+      !bookingId ||
+      !venueName ||
+      !venueLocation ||
+      !date ||
+      !timings ||
+      !recipientEmail
+    ) {
+      logger.warn(
+        "One or more parameters is missing while trying to send confirmation mail to admin"
+      );
       return res.status(400).json({ msg: "Invalid request body" });
     }
 
-    await sendRejectEmail(venueName, venueLocation, date, timings, recipientEmail)
-    logger.info(`Booking reject Email sent to ${recipientEmail}`)
+    await sendRejectEmail(
+      venueName,
+      venueLocation,
+      date,
+      timings,
+      recipientEmail
+    );
+    logger.info(`Booking reject Email sent to ${recipientEmail}`);
 
     const updatedBooking = await updateBookingStatus(bookingId, "rejected");
     logger.info(`Booking rejected for ID: ${bookingId}`);
@@ -309,31 +344,13 @@ module.exports.checkVenueAvailability = async (req, res, next) => {
         .send("Venue ID, date, start time, and duration are required");
     }
 
-    const requestedStart = moment(startTime, "HH:mm");
-    const requestedEnd = moment(startTime, "HH:mm").add(duration, "minutes");
-
-    const bookings = await Booking.find({ venueId, date });
-
-    const isOverlap = bookings.some((booking) => {
-      const bookingStart = moment(booking.timings.startTime, "HH:mm");
-      const bookingEnd = moment(booking.timings.startTime, "HH:mm").add(
-        booking.timings.duration,
-        "minutes"
-      );
-
-      return (
-        requestedStart.isBefore(bookingEnd) &&
-        requestedEnd.isAfter(bookingStart)
-      );
-    });
-
-    if (isOverlap) {
-      console.log(`Venue ${venueId} is unavailable at ${startTime} on ${date}`);
-      return res.status(200).json({ available: false });
-    }
-
-    console.log(`Venue ${venueId} is available at ${startTime} on ${date}`);
-    return res.status(200).json({ available: true });
+    const availabilityResponse = await checkVenueAvailabilityService(
+      venueId,
+      date,
+      startTime,
+      duration
+    );
+    return res.status(200).json(availabilityResponse);
   } catch (error) {
     console.error(
       `Error checking availability for venue ${venueId}: ${error.message}`
